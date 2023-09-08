@@ -1,0 +1,19 @@
+
+clusterVersionOverride: ""
+
+roleProbe:
+  failureThreshold: 2
+  periodSeconds: 1
+  timeoutSeconds: 1
+
+images:
+  polardbx:
+    pullPolicy: IfNotPresent
+    repository: polardbx
+    toolsUpdater:
+      name: xstore-tools
+      tag: v1.4.1
+    xstore:
+      name: polardbx-engine-2.0
+      tag: latest
+

@@ -1,0 +1,10 @@
+apiVersion: v1
+name: polardbx
+version: 1.4.1
+appVersion: v1.4.1
+keywords:
+  - polardb-x
+  - operator
+home: https://www.aliyun.com/product/drds
+sources:
+  - https://github.com/polardb/polardbx-operator

@@ -1,0 +1,19 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterVersion
+metadata:
+  name: polardbx-{{ default .Chart.AppVersion .Values.clusterVersionOverride }}
+  labels:
+    {{- include "polardbx.labels" . | nindent 4 }}
+spec:
+  clusterDefinitionRef: polardbx
+  componentVersions:
+    - componentDefRef: gms
+      versionsContext:
+        containers:
+          - name: dn-engine
+            image: {{ .Values.images.polardbx.repository }}/{{ .Values.images.polardbx.xstore.name}}:{{.Values.images.polardbx.xstore.tag}}
+            imagePullPolicy: {{ default "IfNotPresent" .Values.images.polardbx.pullPolicy }}
+        initContainers:
+          - name: tools-updater
+            image: {{ .Values.images.polardbx.repository }}/{{ .Values.images.polardbx.toolsUpdater.name }}:{{.Values.images.polardbx.toolsUpdater.tag}}
+            imagePullPolicy: {{ default "IfNotPresent" .Values.images.polardbx.pullPolicy }}

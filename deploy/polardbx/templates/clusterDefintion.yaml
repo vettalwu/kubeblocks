@@ -1,0 +1,164 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: polardbx
+  labels:
+    {{- include "polardbx.labels" . | nindent 4 }}
+spec:
+  connectionCredential:
+    username: "polardbx_root"
+    password: "$(RANDOM_PASSWD)"
+    endpoint: "$(SVC_FQDN):$(SVC_PORT_polardbx)"
+    host: "$(SVC_FQDN)"
+    port: "$(SVC_PORT_polardbx)"
+    metaDbPasswd: "$(RANDOM_PASSWD)"
+  componentDefs:
+    - name: gms
+      scriptSpecs:
+        - name: polardbx-scripts
+          templateRef: polardbx-scripts
+          volumeName: scripts
+          namespace: {{ .Release.Namespace }}
+          defaultMode: 0555
+      workloadType: Consensus
+      characterType: mysql
+      consensusSpec:
+        leader:
+          name: "leader"
+          accessMode: ReadWrite
+        followers:
+          - name: "follower"
+            accessMode: Readonly
+        updateStrategy: Serial
+      probes:
+        roleProbe:
+          failureThreshold: {{ .Values.roleProbe.failureThreshold }}
+          periodSeconds: {{ .Values.roleProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.roleProbe.timeoutSeconds }}
+      service:
+        ports:
+          - name: mysql
+            port: 3306
+            targetPort: 3306
+      podSpec:
+        volumes:
+          - hostPath:
+              path: /data/cache/tools/xstore
+              type: DirectoryOrCreate
+            name: xstore-tools
+          - downwardAPI:
+              defaultMode: 420
+              items:
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.labels
+                  path: labels
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.annotations
+                  path: annotations
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.annotations['runmode']
+                  path: runmode
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+                  path: name
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+                  path: namespace
+            name: podinfo
+        initContainers:
+          - name: tools-updater
+            command: ["/bin/ash"]
+            args: ["-c", "./hack/update.sh /target"]
+            env:
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: spec.nodeName
+            volumeMounts:
+              - name: xstore-tools
+                mountPath: /target
+        containers:
+          - name: dn-engine
+            command:
+              - /tools/xstore/current/venv/bin/python3
+              - /tools/xstore/current/entrypoint.py
+            lifecycle:
+              postStart:
+                exec:
+                  command:
+                    - /scripts/replicaset-post-start.sh
+                    - GMS
+            env:
+              - name: LANG
+                value: en_US.utf8
+              - name: LC_ALL
+                value: en_US.utf8
+              - name: ENGINE
+                value: galaxy
+              - name: ENGINE_HOME
+                value: /opt/galaxy_engine
+              - name: NODE_ROLE
+                value: candidate
+              - name: NODE_IP
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: status.hostIP
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: spec.nodeName
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: status.podIP
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LIMITS_CPU
+                valueFrom:
+                  resourceFieldRef:
+                    containerName: dn-engine
+                    resource: limits.cpu
+              - name: LIMITS_MEM
+                valueFrom:
+                  resourceFieldRef:
+                    containerName: dn-engine
+                    resource: limits.memory
+              - name: PORT_MYSQL
+                value: "3306"
+              - name: PORT_PAXOS
+                value: "11306"
+              - name: PORT_POLARX
+                value: "31600"
+            ports:
+              - name: mysql
+                containerPort: 3306
+              - name: paxos
+                containerPort: 11306
+              - name: polarx
+                containerPort: 31600
+            volumeMounts:
+              - name: data
+                mountPath: /data/mysql
+              - name: data-log
+                mountPath: /data-log/mysql
+              - name: xstore-tools
+                mountPath: /tools/xstore
+              - name: scripts
+                mountPath: /scripts/replicaset-post-start.sh
+                subPath: replicaset-post-start.sh
+              - name: podinfo
+                mountPath: /etc/podinfo
+
+
