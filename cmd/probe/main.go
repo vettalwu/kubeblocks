@@ -60,6 +60,18 @@ import (
 	"github.com/apecloud/kubeblocks/cmd/probe/internal/highavailability"
 	"github.com/apecloud/kubeblocks/cmd/probe/internal/middleware/http/probe"
 	"github.com/apecloud/kubeblocks/internal/constant"
+	viper "github.com/apecloud/kubeblocks/internal/viperx"
+	"github.com/apecloud/kubeblocks/lorry/binding/custom"
+	"github.com/apecloud/kubeblocks/lorry/binding/etcd"
+	"github.com/apecloud/kubeblocks/lorry/binding/kafka"
+	"github.com/apecloud/kubeblocks/lorry/binding/mongodb"
+	"github.com/apecloud/kubeblocks/lorry/binding/mysql"
+	"github.com/apecloud/kubeblocks/lorry/binding/polardbx"
+	"github.com/apecloud/kubeblocks/lorry/binding/postgres"
+	"github.com/apecloud/kubeblocks/lorry/binding/redis"
+	"github.com/apecloud/kubeblocks/lorry/highavailability"
+	"github.com/apecloud/kubeblocks/lorry/middleware/http/probe"
+	"github.com/apecloud/kubeblocks/lorry/util"
 )
 
 var (
@@ -71,6 +83,7 @@ var (
 func init() {
 	viper.AutomaticEnv()
 	bindingsLoader.DefaultRegistry.RegisterOutputBinding(mysql.NewMysql, "mysql")
+	bindingsLoader.DefaultRegistry.RegisterOutputBinding(polardbx.NewPolardbx, "polardbx")
 	bindingsLoader.DefaultRegistry.RegisterOutputBinding(etcd.NewEtcd, "etcd")
 	bindingsLoader.DefaultRegistry.RegisterOutputBinding(mongodb.NewMongoDB, "mongodb")
 	bindingsLoader.DefaultRegistry.RegisterOutputBinding(redis.NewRedis, "redis")
